@@ -225,13 +225,13 @@ def format_transcription(
     output = []
 
     for element in transcript:
-        participant = get_participant(config, element)
-        participant_name = get_participant_name(participant)
+        # participant = get_participant(config, element)
+        participant_name = element.participantId  # get_participant_name(participant)
 
         text = "\n".join(
             [e.text for e in element.content if e.language == config.language]
         )
-        output.append(f"{participant_name}\n{text}")
+        output.append(f"Participant '{participant_name}': \n{text}")
 
     return "\n\n".join(output)
 
