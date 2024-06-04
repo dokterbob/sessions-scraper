@@ -10,6 +10,7 @@ python = "^3.10"
 requests = "^2.32.3"
 pydantic = "^2.7.3"
 python-dotenv = "^1.0.1"
+python-slugify = "^8.0.4"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.25.0"

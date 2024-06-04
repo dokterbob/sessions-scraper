@@ -9,6 +9,7 @@ import os
 import urllib.parse
 import requests
 
+from slugify import slugify
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
@@ -22,6 +23,7 @@ class Config:
     requests: requests.Session
     api_url: str
     language: str
+    output_dir: str
 
 
 def get_config() -> Config:
@@ -34,7 +36,9 @@ def get_config() -> Config:
     session = requests.Session()
     session.headers = {"X-API-Key": api_key}
 
-    return Config(api_url=api_url, requests=session, language="nl")
+    return Config(
+        api_url=api_url, requests=session, language="nl", output_dir="./output/"
+    )
 
 
 class Session(pydantic.BaseModel):
@@ -219,7 +223,7 @@ def get_participant_name(participant: Participant) -> str:
     assert False
 
 
-def format_transcription(
+def format_transcript(
     config: Config, transcript: Transcript, participants: Participants
 ) -> str:
     output = []
@@ -236,6 +240,12 @@ def format_transcription(
     return "\n\n".join(output)
 
 
+def transcript_to_file(config: Config, formatted_transcript: str, session_name: str):
+    filename = os.path.join(config.output_dir, session_name)
+    with open(filename, "w") as f:
+        f.write(formatted_transcript)
+
+
 def main():
     config = get_config()
     sessions = get_sessions(config)
@@ -245,8 +255,12 @@ def main():
         transcript = get_transcript(config, session)
         participants = []  # get_participants(config, session) 403's
 
-        formatted_transcription = format_transcription(config, transcript, participants)
-        print(formatted_transcription)
+        formatted_transcript = format_transcript(config, transcript, participants)
+        transcript_to_file(
+            config,
+            formatted_transcript,
+            f"{session.actualStart.date()}-{slugify(session.name)}",
+        )
 
 
 main()
