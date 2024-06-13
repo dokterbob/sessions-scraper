@@ -251,7 +251,7 @@ def main():
     sessions = get_sessions(config)
     # transcribed_sessions = filter(lambda s: s.transcriptionActive, sessions)
 
-    for session in sessions[:1]:
+    for session in sessions:
         transcript = get_transcript(config, session)
         participants = []  # get_participants(config, session) 403's
 
