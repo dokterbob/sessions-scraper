@@ -133,6 +133,7 @@ class ParticipantUser(pydantic.BaseModel):
 
 
 class Participant(pydantic.BaseModel):
+    id: str
     user = ParticipantUser
     guest = ParticipantUser
     # {
@@ -186,16 +187,16 @@ def get_sessions(config: Config) -> Sessions:
     return sessions
 
 
-def get_participant(config: Config, elem: TranscriptElement) -> Participant:
+def get_participants(config: Config, session: Session) -> Participants:
     url = urllib.parse.urljoin(
-        config.api_url, f"/api/sessions/{elem.participantId}/participants"
+        config.api_url, f"/api/sessions/{session.id}/participants"
     )
 
-    resp = config.requests.get(url)
+    resp = config.requests.get(url)  # This 403's.
 
     assert resp.status_code == 200
 
-    return Participant.parse_obj(resp.json())
+    return [Participant.parse_obj(item) for item in resp.json()]
 
 
 def get_transcript(config: Config, session: Session) -> Transcript:
@@ -213,14 +214,16 @@ def get_transcript(config: Config, session: Session) -> Transcript:
     return transcription_elements
 
 
-def get_participant_name(participant: Participant) -> str:
-    if participant.user:
-        return f"{participant.user.firstName}{participant.user.lastName}"
+def get_participant_name(participants: Participants, participant_id: str) -> str:
+    for participant in participants:
+        if participant.id == participant_id:
+            if participant.user:
+                return f"{participant.user.firstName}{participant.user.lastName}"
 
-    if participant.guest:
-        return f"{participant.guest.firstName}{participant.guest.lastName}"
+            if participant.guest:
+                return f"{participant.guest.firstName}{participant.guest.lastName}"
 
-    assert False
+    assert False, "Participant not found."
 
 
 def format_transcript(
@@ -229,8 +232,7 @@ def format_transcript(
     output = []
 
     for element in transcript:
-        # participant = get_participant(config, element)
-        participant_name = element.participantId  # get_participant_name(participant)
+        participant_name = get_participant_name(participants, element.participantId)
 
         text = "\n".join(
             [e.text for e in element.content if e.language == config.language]
@@ -249,11 +251,10 @@ def transcript_to_file(config: Config, formatted_transcript: str, session_name: 
 def main():
     config = get_config()
     sessions = get_sessions(config)
-    # transcribed_sessions = filter(lambda s: s.transcriptionActive, sessions)
 
     for session in sessions:
         transcript = get_transcript(config, session)
-        participants = []  # get_participants(config, session) 403's
+        participants = get_participants(config, session)
 
         formatted_transcript = format_transcript(config, transcript, participants)
         transcript_to_file(
